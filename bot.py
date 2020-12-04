@@ -20,8 +20,8 @@ def ask_first_argument(message):    # получаем первый аргуме
 
 def convert_first_argument_and_ask_operation(message):
     global first_arg
-    # проверяем, есть ли целая часть, затем достаем все части дроби
-    if ' ' in message.text:
+    # если аргумент соответствует нужному формату и это смешанная дробь, т.е. есть целая часть
+    if re.match('[-+]?\d+\s[-+]?\d+\S[-+]?\d+', message.text) is not None:
         integer = int(' '.join([str(i) for i in re.findall(r'^\w+', message.text)]))
         numerator = int(' '.join([str(i) for i in re.findall(r' \w+', message.text)]))
         denominator = int(' '.join([str(i) for i in re.findall(r'\w+$', message.text)]))
@@ -42,7 +42,8 @@ def convert_first_argument_and_ask_operation(message):
             keyboard.add(key_division)
             bot.send_message(message.from_user.id, text='Выбери операцию', reply_markup=keyboard)
             bot.register_next_step_handler(message, convert_second_argument_and_ask_exit)
-    else:
+    # если аргумент соответствует нужному формату и это простая дробь
+    elif re.match('[-+]?\d+\S[-+]?\d+', message.text) is not None:
         numerator = int(' '.join([str(i) for i in re.findall(r'^\w+', message.text)]))
         denominator = int(' '.join([str(i) for i in re.findall(r'\w+$', message.text)]))
         if denominator == 0:
@@ -62,11 +63,15 @@ def convert_first_argument_and_ask_operation(message):
             keyboard.add(key_division)
             bot.send_message(message.from_user.id, text='Выбери операцию', reply_markup=keyboard)
             bot.register_next_step_handler(message, convert_second_argument_and_ask_exit)
+    else:
+        bot.send_message(message.from_user.id, 'Аргумент указан в неправильном формате')
+        bot.register_next_step_handler(message, ask_first_argument)
 
 
 def convert_second_argument_and_ask_exit(message):
     global second_arg
-    if ' ' in message.text:
+    # если аргумент соответствует нужному формату и это смешанная дробь, т.е. есть целая часть
+    if re.match('[-+]?\d+\s[-+]?\d+\S[-+]?\d+', message.text) is not None:
         integer = int(' '.join([str(i) for i in re.findall(r'^\w+', message.text)]))
         numerator = int(' '.join([str(i) for i in re.findall(r' \w+', message.text)]))
         denominator = int(' '.join([str(i) for i in re.findall(r'\w+$', message.text)]))
@@ -74,18 +79,25 @@ def convert_second_argument_and_ask_exit(message):
             bot.send_message(message.from_user.id, 'Знаменатель не может быть равен 0')
         else:
             second_arg = Fraction(integer * denominator + numerator, denominator)
-    else:
+        keyboard = types.InlineKeyboardMarkup()
+        key_equality = types.InlineKeyboardButton(text='=', callback_data='equality')
+        keyboard.add(key_equality)
+        bot.send_message(message.from_user.id, text='Получить ответ', reply_markup=keyboard)
+    # если аргумент соответствует нужному формату и это простая дробь
+    elif re.match('[-+]?\d+\S[-+]?\d+', message.text) is not None:
         numerator = int(' '.join([str(i) for i in re.findall(r'^\w+', message.text)]))
         denominator = int(' '.join([str(i) for i in re.findall(r'\w+$', message.text)]))
         if denominator == 0:
             bot.send_message(message.from_user.id, 'Знаменатель не может быть равен 0')
         else:
             second_arg = Fraction(numerator, denominator)
-    keyboard = types.InlineKeyboardMarkup()
-    key_equality = types.InlineKeyboardButton(text='=', callback_data='equality')
-    keyboard.add(key_equality)
-    bot.send_message(message.from_user.id, text='Получить ответ', reply_markup=keyboard)
-
+        keyboard = types.InlineKeyboardMarkup()
+        key_equality = types.InlineKeyboardButton(text='=', callback_data='equality')
+        keyboard.add(key_equality)
+        bot.send_message(message.from_user.id, text='Получить ответ', reply_markup=keyboard)
+    else:
+        bot.send_message(message.from_user.id, 'Аргумент указан в неправильном формате')
+        bot.register_next_step_handler(message, ask_first_argument)
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback_worker(call):
